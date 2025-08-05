@@ -13,12 +13,20 @@ import { envVariables } from "./env";
 passport.use(
   new LocalStrategy(
     { usernameField: "email", passwordField: "password" },
-    async (email: string, password: string, done: VerifyCallback) => {
+    async (email: string, password: string, done) => {
       try {
         const isUserExist = await User.findOne({ email });
 
         if (!isUserExist) {
           done(null, false, { message: "User does not exist" });
+        }
+
+        const isGoogleAuthenticated = isUserExist.auths.some((providerObjects) => {
+providerObjects.provider === "google"
+        })
+
+        if (isGoogleAuthenticated) {
+          return done(null, false, { message: "User is authenticated with Google" });
         }
 
         const isPasswordMatched = await bcrypt.compare(
