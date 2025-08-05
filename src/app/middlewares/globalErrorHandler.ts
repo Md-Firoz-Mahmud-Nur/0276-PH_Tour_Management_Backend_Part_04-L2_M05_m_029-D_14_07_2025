@@ -10,6 +10,7 @@ export const globalErrorHandler = (
 ) => {
   console.log(err);
 
+  let errorSources = [];
   let statusCode = 500;
   let message = `Something went wrong ${err.message} from global middleware`;
   if (err.code === 11000) {
@@ -19,6 +20,17 @@ export const globalErrorHandler = (
   } else if (err.name === "CastError") {
     statusCode = 400;
     message = "Invalid ID, Please Provide A Valid ID";
+  } else if (err.name === "ValidationError") {
+    statusCode = 400;
+    const errors = Object.values(err.errors);
+
+    errors.forEach((error: any) =>
+      errorSources.push({
+        path: error.path,
+        message: error.message,
+      })
+    );
+    message = "Validation Error";
   } else if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
@@ -31,6 +43,7 @@ export const globalErrorHandler = (
     success: false,
     message,
     err,
+    errorSources,
     stack: envVariables.NODE_ENV === "development" ? err.stack : null,
   });
 };
