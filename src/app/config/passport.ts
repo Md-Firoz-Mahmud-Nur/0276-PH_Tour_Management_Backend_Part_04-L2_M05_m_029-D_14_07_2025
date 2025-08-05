@@ -17,17 +17,32 @@ passport.use(
       try {
         const isUserExist = await User.findOne({ email });
 
+        // if (!isUserExist) {
+        //   done(null, false, { message: "User does not exist" });
+        // }
+
         if (!isUserExist) {
-          done(null, false, { message: "User does not exist" });
+          return done("User does not exist");
         }
 
-        const isGoogleAuthenticated = isUserExist.auths.some((providerObjects) => {
-providerObjects.provider === "google"
-        })
+        const isGoogleAuthenticated = isUserExist.auths.some(
+          (providerObjects) => {
+            providerObjects.provider === "google";
+          }
+        );
 
-        if (isGoogleAuthenticated) {
-          return done(null, false, { message: "User is authenticated with Google" });
+        if (isGoogleAuthenticated && !isUserExist.password) {
+          return done(null, false, {
+            message:
+              "You have authenticated through Google. So if you want to login with credentials, then at first login with google and set a password for your Gmail and then you can login with email and password.",
+          });
         }
+
+        // if (isGoogleAuthenticated) {
+        //   return done(null, false, {
+        //     message: "User is authenticated with Google",
+        //   });
+        // }
 
         const isPasswordMatched = await bcrypt.compare(
           password as string,
