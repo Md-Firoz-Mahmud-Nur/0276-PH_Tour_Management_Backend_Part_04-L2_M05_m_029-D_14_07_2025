@@ -28,10 +28,10 @@ export const globalErrorHandler = (
   } else if (err.name === "ZodError") {
     statusCode = 400;
     const errors = err.issues;
-    console.log("errors", errors);
     errors.forEach((error: any) =>
       errorSources.push({
-        path: error.path[0],
+        // path: error.path[error.path.length - 1],
+        path: error.path.length > 1 && error.path.reverse().join(" inside "),
         message: error.message,
       })
     );
