@@ -1,6 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { envVariables } from "../config/env";
 import AppError from "../errorHelpers/AppError";
+import { handleCastError } from "../helpers/handleCastError";
+import { handlerDuplicateError } from "../helpers/handleDuplicateError";
+import { handlerValidationError } from "../helpers/handlerValidationError";
+import { handlerZodError } from "../helpers/handlerZodError";
+import { TErrorSources } from "../interfaces/error.types";
 
 export const globalErrorHandler = (
   err: any,
@@ -10,42 +15,28 @@ export const globalErrorHandler = (
 ) => {
   console.log(err);
 
-  let errorSources: any = [
-    // {
-    //   path: "isDeleted",
-    //   message: "Cast Failed",
-    // },
-  ];
+  let errorSources: TErrorSources[] = [];
   let statusCode = 500;
   let message = `Something went wrong ${err.message} from global middleware`;
   if (err.code === 11000) {
-    statusCode = 409;
-    // message = `Duplicate ${Object.keys(err.keyValue)} entered, ${Object.values(err.keyValue)} already exists`;
-    message = `${Object.values(err.keyValue)} already exists`;
+    const simplifiedError = handlerDuplicateError(err);
+    console.log(simplifiedError);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
   } else if (err.name === "CastError") {
-    statusCode = 400;
-    message = "Invalid ID, Please Provide A Valid ID";
+    const simplifiedError = handleCastError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
   } else if (err.name === "ZodError") {
-    statusCode = 400;
-    const errors = err.issues;
-    errors.forEach((error: any) =>
-      errorSources.push({
-        // path: error.path[error.path.length - 1],
-        path: error.path.length > 1 && error.path.reverse().join(" inside "),
-        message: error.message,
-      })
-    );
-    message = "Validation Error";
+    const simplifiedError = handlerZodError(err);
+    statusCode = simplifiedError.statusCode;
+    errorSources = simplifiedError.errorSources as TErrorSources[];
+    message = simplifiedError.message;
   } else if (err.name === "ValidationError") {
-    statusCode = 400;
-    const errors = Object.values(err.errors);
-    errors.forEach((error: any) =>
-      errorSources.push({
-        path: error.path,
-        message: error.message,
-      })
-    );
-    message = "Validation Error";
+    const simplifiedError = handlerValidationError(err);
+    statusCode = simplifiedError.statusCode;
+    errorSources = simplifiedError.errorSources as TErrorSources[];
+    message = simplifiedError.message;
   } else if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
