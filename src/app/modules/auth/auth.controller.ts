@@ -1,36 +1,87 @@
 import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
+import passport from "passport";
+import { envVariables } from "../../config/env";
+import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import httpStatus from "http-status-codes";
-import { authServices } from "./auth.service";
-import AppError from "../../errorHelpers/AppError";
 import { setAuthCookie } from "../../utils/setCookie";
-import { envVariables } from "../../config/env";
 import { createUserTokens } from "../../utils/userTokens";
-import { JwtPayload } from "jsonwebtoken";
+import { authServices } from "./auth.service";
 
-const credentialsLogin = catchAsync(async (req: Request, res: Response) => {
-  const loginInfo = await authServices.credentialsLogin(req.body);
+const credentialsLogin = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // const loginInfo = await authServices.credentialsLogin(req.body);
 
-  // res.cookie("accessToken", loginInfo.accessToken, {
-  //   httpOnly: true,
-  //   secure: false,
-  // });
+    passport.authenticate(
+      "local",
 
-  // res.cookie("refreshToken", loginInfo.refreshToken, {
-  //   httpOnly: true,
-  //   secure: false,
-  // });
+      async (err: any, user: any, info: any) => {
+        if (err) {
+          // ❌❌❌❌❌
+          // throw new AppError(401, "Some error")
+          // next(err)
+          // return new AppError(401, err)
 
-  setAuthCookie(res, loginInfo);
+          // ✅✅✅✅
+          // return next(err)
+          // console.log("from err");
+          return next(new AppError(401, err));
+        }
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "User Logged In Successfully",
-    data: loginInfo,
-  });
-});
+        if (!user) {
+          // console.log("from !user");
+          // return new AppError(401, info.message)
+          return next(new AppError(401, info.message));
+        }
+
+        const userTokens = await createUserTokens(user);
+
+        const { password: pass, ...rest } = user.toObject();
+
+        setAuthCookie(res, userTokens);
+
+        // sendResponse(res, {
+        //   success: true,
+        //   statusCode: httpStatus.CREATED,
+        //   message: "User Logged In Successfully",
+        //   data: loginInfo,
+        // });
+
+        sendResponse(res, {
+          success: true,
+          statusCode: httpStatus.OK,
+          message: "User Logged In Successfully",
+          data: {
+            accessToken: userTokens.accessToken,
+            refreshToken: userTokens.refreshToken,
+            user: rest,
+          },
+        });
+      }
+    )(req, res, next);
+
+    // res.cookie("accessToken", loginInfo.accessToken, {
+    //   httpOnly: true,
+    //   secure: false,
+    // });
+
+    // res.cookie("refreshToken", loginInfo.refreshToken, {
+    //   httpOnly: true,
+    //   secure: false,
+    // });
+
+    // setAuthCookie(res, loginInfo);
+
+    // sendResponse(res, {
+    //   success: true,
+    //   statusCode: httpStatus.CREATED,
+    //   message: "User Logged In Successfully",
+    //   data: loginInfo,
+    // });
+  }
+);
 
 const getNewAccessToken = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refreshToken;

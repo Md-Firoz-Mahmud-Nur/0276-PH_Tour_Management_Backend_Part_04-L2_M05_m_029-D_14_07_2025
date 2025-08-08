@@ -6,6 +6,25 @@ export const createZodSchema = z.object({
     .string({ invalid_type_error: "Name must be string" })
     .min(3, { message: "Name too short, enter at least 3 character" })
     .max(50, { message: "Name too long, enter at most 50 character" }),
+
+  // name: z.object({
+  //   firstName: z
+  //     .string({ invalid_type_error: "Name must be string" })
+  //     .min(2, { message: "Name must be at least 2 characters long." })
+  //     .max(50, { message: "Name cannot exceed 50 characters." }),
+  //   lastName: z.object({
+  //     nickName: z
+  //       .string({ invalid_type_error: "Name must be string" })
+  //       .min(2, { message: "Name must be at least 2 characters long." })
+  //       .max(50, { message: "Name cannot exceed 50 characters." }),
+
+  //     surName: z
+  //       .string({ invalid_type_error: "Name must be string" })
+  //       .min(2, { message: "Name must be at least 2 characters long." })
+  //       .max(50, { message: "Name cannot exceed 50 characters." }),
+  //   }),
+  // }),
+
   email: z
     .string()
     .email({ message: "Enter a valid email" })
